@@ -1,0 +1,45 @@
+version: "3.9"
+
+services:
+  appic_db:
+    image: postgres:14.2
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+  appic_web:
+    build: ./appic
+    command: ["python","manage.py", "runserver", "0.0.0.0:8000"]
+    volumes:
+      - ./appic:/appic
+    ports: 
+      - "8000:8000"
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_HOST
+      - POSTGRES_PORT
+      - POSTGRES_NAME
+      - CELERY_BROKER_URL
+      - CELERY_RESULT_BACKEND
+    depends_on:
+      - appic_db
+
+  appic_celery:
+    build: ./appic
+    command: celery -A appic worker -l info
+    volumes:
+      - ./appic:/appic
+    depends_on:
+      - appic_db
+      - appic_redis
+      - appic_web
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_HOST
+      - POSTGRES_PORT
+      - POSTGRES_NAME
+      - CELERY_BROKER_URL
+      - CELERY_RESULT_BACKEND
+  appic_redis:
+    image: redis
